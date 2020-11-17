@@ -25,6 +25,9 @@ scale_colour_discrete = scale_color_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
 
+##Problem 1
+
+
 Data Import + Tidy
 ```{r, message=FALSE}
 homicide_df = 
@@ -111,3 +114,34 @@ prop_test %>%
 
 We notice that the `Chicago_IL` has the highest number of unsolved homicide cases, followed up `New_Orleans_LA`. By contrast, `Richmond_VA` has the lowest unsolved homicide rate, followed by `Charlotte_NC`.
 
+
+##Problem 2
+
+
+```{r}
+
+ 
+read_csv("./data/lda_data/con_01.csv") 
+
+list.files(path = "./data/lda_data")
+
+read_csv("./data/lda_data/con_01.csv")
+
+lda = tibble(
+    path = list.files("./data/lda_data"),
+  ) %>% 
+  mutate(
+    id = str_remove(path, ".csv"),
+    path = str_c("./data/lda_data/", path),
+    data = map(path, read_csv),
+    data = map(data, bind_rows)
+    ) %>% 
+    select(-path) %>% 
+    separate(id, into = c("treatment", "id"), sep = "_") %>% 
+  unnest(data) %>% 
+    relocate(id)
+    
+```
+
+
+The dataset `lda` is tidy data that contains data from a longitudinal study on `r nrow(lda)` participants, including the subject ID, arm, and observations over time
