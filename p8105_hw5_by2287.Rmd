@@ -41,13 +41,28 @@ The dataframe `homicide_df` contains information on homicides in 50 large U.S. c
 #   select(city_state, resolved, city, state) %>% 
 #   View()
 
-
-homicide_df %>% 
+aggregate_df = homicide_df %>% 
   group_by(city_state) %>% 
   summarize(
-   `Total number of Homicide` = n(),
-   `Number of Unsolved Cases` = sum(resolved == "unsolved")
+   `total_homicide` = n(),
+   `num_unsolved` = sum(resolved == "unsolved")
+  ) 
+
+aggregate_df %>% 
+  knitr::kable()
+
+```
+
+
+```{r}
+prop_test = prop.test(
+  aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(num_unsolved), 
+  aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(total_homicide)
   ) %>% 
+  broom::tidy() %>% select(estimate, conf.low, conf.high)
+
+
+prop_test %>% 
   knitr::kable()
 
 ```
