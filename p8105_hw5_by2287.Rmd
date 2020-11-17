@@ -7,10 +7,22 @@ output: github_document
 
 
 ```{r, include = F}
-knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(httr)
 library(purrr)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+scale_colour_discrete = scale_color_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
 ```
 
 Data Import + Tidy
@@ -24,7 +36,8 @@ homicide_df =
       disposition == "Open/No arrest"        ~ "unsolved",
       disposition == "Closed by arrest"      ~ "solved",
     )
-  )
+  ) %>% 
+  filter(city_state != "Tulsa_AL")
 
 homicide_df %>% 
   select(city_state, resolved) %>% 
@@ -55,15 +68,46 @@ aggregate_df %>%
 
 
 ```{r}
-prop_test = prop.test(
+p_test = prop.test(
   aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(num_unsolved), 
   aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(total_homicide)
   ) %>% 
   broom::tidy() %>% select(estimate, conf.low, conf.high)
 
 
-prop_test %>% 
+p_test %>% 
   knitr::kable()
 
 ```
+
+
+```{r}
+prop_test = aggregate_df %>% 
+  mutate(
+    prop_tests = map2(.x = num_unsolved, .y = total_homicide, ~prop.test(x = .x, n = .y)),
+    tidy_tests = map(.x = prop_tests, ~broom::tidy(.x))
+  ) %>% 
+  select(-prop_tests) %>% 
+  unnest(tidy_tests) %>% 
+  select(city_state, estimate, conf.low, conf.high)
+```
+
+
+Making a plot of the proption test estimates, with confidence intervals, by city. The proportion test here tests whether the proportion of unsolved homicide cases is equal to the proprtion of solved homicide cases. 
+
+```{r}
+prop_test %>% 
+  mutate(city_state = fct_reorder(city_state, estimate)) %>% 
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point() + 
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) + 
+  theme(axis.text.x = element_text(angle = 60, vjust = 1.0, hjust = 1)) + 
+  labs(
+    title = "Proportion Test Estimates, by City",
+    x = "City",
+    y = "Proportion Estimate"
+  )
+```
+
+We notice that the `Chicago_IL` has the highest number of unsolved homicide cases, followed up `New_Orleans_LA`. By contrast, `Richmond_VA` has the lowest unsolved homicide rate, followed by `Charlotte_NC`.
 
