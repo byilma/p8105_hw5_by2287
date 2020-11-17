@@ -117,16 +117,7 @@ We notice that the `Chicago_IL` has the highest number of unsolved homicide case
 
 ##Problem 2
 
-
 ```{r}
-
- 
-read_csv("./data/lda_data/con_01.csv") 
-
-list.files(path = "./data/lda_data")
-
-read_csv("./data/lda_data/con_01.csv")
-
 lda = tibble(
     path = list.files("./data/lda_data"),
   ) %>% 
@@ -139,9 +130,55 @@ lda = tibble(
     select(-path) %>% 
     separate(id, into = c("treatment", "id"), sep = "_") %>% 
   unnest(data) %>% 
-    relocate(id)
+    relocate(id) %>% 
+  pivot_longer(
+    cols = week_1:week_8,
+    names_to = "week",
+    names_prefix = "week_",
+    values_to = "observation"
+  )
     
+
+lda %>% 
+  head(10) %>% 
+  knitr::kable()
+
 ```
 
 
 The dataset `lda` is tidy data that contains data from a longitudinal study on `r nrow(lda)` participants, including the subject ID, arm, and observations over time
+
+
+## Problem 3
+
+```{r, cache=T}
+
+n = 30
+sigma = 5
+mu = 5
+
+#x ~ Normal[mu, sigma]
+
+
+sim_mean_sd = function(samp_size, mu = 5, sigma = 5) {
+  
+  sim_data = 
+    tibble(
+      x = rnorm(n = samp_size, mean = mu, sd = sigma)
+    )
+  # sim_data %>% 
+  #   summarize(
+  #     mean = mean(x),
+  #     sd = sd(x)
+  #  )
+  
+}
+
+
+#rnorm(n = n, mean = mu, sd = sigma)
+
+sim_results = rerun(5000, sim_mean_sd(samp_size = n)) %>% 
+  bind_rows()
+
+```
+
