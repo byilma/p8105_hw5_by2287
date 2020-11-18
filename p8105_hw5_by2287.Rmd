@@ -151,34 +151,43 @@ The dataset `lda` is tidy data that contains data from a longitudinal study on `
 
 ## Problem 3
 
-```{r, cache=T}
-
-n = 30
-sigma = 5
-mu = 5
-
-#x ~ Normal[mu, sigma]
-
-
-sim_mean_sd = function(samp_size, mu = 5, sigma = 5) {
-  
+First, I define a function `ttest` that outputs the results of a one-sample t-test, in specific the estimated mu_hat & p-value
+from number generated from a random normal distrbution, with a fixed sample size `samp_size` of 30 and a standard deviation `sigma` of 5. 
+```{r}
+ttest = function(mu, samp_size = 30, sigma = 5) {
   sim_data = 
     tibble(
       x = rnorm(n = samp_size, mean = mu, sd = sigma)
     )
-  # sim_data %>% 
-  #   summarize(
-  #     mean = mean(x),
-  #     sd = sd(x)
-  #  )
   
+   sim_data %>% 
+     summarize(
+       mu_hat = t.test(x) %>% broom::tidy() %>% pull(estimate),
+       p_value = t.test(x) %>% broom::tidy() %>% pull(p.value),
+    )
 }
 
+```
 
-#rnorm(n = n, mean = mu, sd = sigma)
-
-sim_results = rerun(5000, sim_mean_sd(samp_size = n)) %>% 
-  bind_rows()
+Here, I create a dataframe that simulates the 5000 samples of size `30` and standard deviation of `5` form the random normal distribution. Then, I perform a one-sample ttest on these samples, and extract the estimate `mu_hat` and the `p_value` from each of these samples. I save these results in the dataframe `ttest_results`.
+```{r cache=T}
+ttest_results = tibble(
+  mu = c(0,1,2,3,4,5,6)
+) %>% 
+  mutate(
+    output_lists = map(.x = mu, ~rerun(5000, ttest(.x))),
+    estimate_df = map(output_lists, bind_rows)
+  ) %>% 
+  select(-output_lists) %>% 
+  unnest(estimate_df)
 
 ```
+
+Plots
+
+```{r}
+
+
+```
+
 
