@@ -1,7 +1,6 @@
 ---
 title: "Iterations"
 author: "Binyam Yilma"
-date: "11/16/2020"
 output: github_document
 ---
 
@@ -40,13 +39,14 @@ homicide_df =
       disposition == "Closed by arrest"      ~ "solved",
     )
   ) %>% 
-  filter(city_state != "Tulsa_AL") #filter out Tulsa_AL because it only contains one observation - probably a data entry mistake
+  filter(city_state != "Tulsa_AL") 
 ```
 
 The dataframe `homicide_df` contains information on homicides in 50 large U.S. cities. The dataset contains`r nrow(homicide_df)` rows and `r ncol(homicide_df)` columns, which contain information such as:`r homicide_df %>% select(reported_date, city, state, victim_race, victim_age, disposition) %>% names()`.
 
-#  comment on disposition
+Notes on tidying - after importing, we concatenate the `city` & `state` variable into a combined `city_state` variable. We also create a new variable `resolved` that describes the status of the homicide case: solved or unsolved. We combine those cases with dispositions "Closed without arrest" or "Open/No arrest" as `unsolved` cases. Finally, we drop the city_state `Tulsa_AL` because it only contains one observation, which is most likely a data entry mistake.
 
+Here we create a summary of the summary of the `homicide_df` showing the total number of homicides and the number of unsolved cases by `city_state`.
 ```{r, message=FALSE, warning = FALSE}
 aggregate_df = homicide_df %>% 
   group_by(city_state) %>% 
@@ -61,7 +61,7 @@ aggregate_df %>%
 
 ```
 
-
+Here we perform a proportion test on `Baltimore_MD`, to see if the proportion of unsolved cases is truly different than the proportion of solved cases. 
 ```{r}
 p_test = prop.test(
   aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(num_unsolved), 
@@ -74,7 +74,7 @@ p_test %>%
   knitr::kable()
 ```
 
-
+Here we perform a proportion test on all `city_state`'s to see if the proportion of unsolved cases is truly different than the proportion of solved cases. 
 ```{r}
 prop_test = aggregate_df %>% 
   mutate(
@@ -88,7 +88,6 @@ prop_test = aggregate_df %>%
 
 
 Making a plot of the proption test estimates, with confidence intervals, by city. The proportion test here tests whether the proportion of unsolved homicide cases is equal to the proprtion of solved homicide cases. 
-
 ```{r, fig.width=8, fig.height=12}
 prop_test %>% 
   mutate(city_state = fct_reorder(city_state, estimate)) %>% 
@@ -103,11 +102,10 @@ prop_test %>%
   )
 ```
 
-We notice that the `Chicago_IL` has the highest number of unsolved homicide cases, followed up `New_Orleans_LA`. By contrast, `Richmond_VA` has the lowest unsolved homicide rate, followed by `Charlotte_NC`.
+We observe here that `Chicago_IL` has the highest number of unsolved homicide cases, followed up `New_Orleans_LA`. By contrast, `Richmond_VA` has the lowest unsolved homicide rate, followed by `Charlotte_NC`.
 
 
 ## Problem 2
-
 ```{r, message=FALSE}
 lda = tibble(
     path = list.files("./data/lda_data"),
@@ -136,21 +134,18 @@ lda = tibble(
 lda %>% 
   head(5) %>% 
   knitr::kable()
-
 ```
-
 
 The dataset `lda` is tidy data that contains data from a longitudinal study on `r nrow(lda)` participants, including the subject ID, arm, and observations over time. The tidying steps included first creating a tibble contains the `path` name of each file, which I then iterate over in the `mutate` step to read in those files. I then, create a dataframe that binds the rows of these read in data. I also create an `arm` and an `id` column off of the file names. Finally, I pivot the observations for each person by week into a long week to create a `week` and an `observation` variable; then I convert `week` into numeric to prepare it for the `spaghetti plot` shown below.
 
 
-
-Spaghetti plot
-```{r}
+**Spaghetti Plot**
+```{r fig.width=8, fig.height=12}
 lda %>% 
   ggplot(aes(x = week, y = observation, group = interaction(treatment_arm, id), color = treatment_arm)) + 
   geom_line() + 
       labs(
-    title = "Response to treatment by arm",
+    title = "Response to Treatment by arm",
     x = "Time in Weeks",
     y = "Observation"
   ) + 
@@ -158,7 +153,6 @@ lda %>%
                          breaks = c("con", "exp"),
                          labels = c("Control", "Experimental"))
 ```
-
 We see that those who were on the treatment arm had, in general, a higher number of observations of the measured value, than those who were in the control arm. 
 
 
@@ -196,9 +190,10 @@ ttest_results = tibble(
   unnest(estimate_df) 
 ```
 
-#### Plots
 
-In the plot below, we see that the power of a test has a sigmoidal relationship with the effect size, as effect size increases so does power, up to an extent, then it starts to plateau. 
+##### Simulation Plots
+
+Plot showing the proportion of times the null was rejected vs. the true value of the mean. 
 ```{r, message= FALSE}
 ttest_results %>% 
   group_by(mu) %>% 
@@ -218,8 +213,13 @@ ttest_results %>%
 
 ```
 
+In the plot above, we see that the power of a test has a sigmoidal relationship with the effect size, as effect size increases so does power, up to an extent, then it starts to plateau. 
 
-```{r, message= FALSE}
+
+
+An overlated Plot showing the average estimate we obtain from the ttest (mu_hat) vs. the true value of the mean. The red dashed line indicates the relationship of `mu_hat` with the true population `mu` for those tests whose null hypothesis was rejected at alpha = 0.05 i.e., p-value < 0.05. The solid Black line is for all tests (rejected Ho + not-rejected Ho).
+
+```{r, message= FALSE, fig.width=8, fig.height=12}
 #create a df that only filters on those tests whose H0 were rejected (p-value < 0.05)
 
 ttest_results2 = ttest_results %>% 
@@ -250,4 +250,6 @@ ttest_results %>%
   ) 
 ```
 
+
+In the plot above, we observe that the sample average mu_hat is only approximately equal to the true value of the `mu` for large `mu` (in this case for `mu` > 3) but it is markedly different for `mu` values that are approximately in between 1 - 2. I believe we observe this due to the difference in the effect size. For large effect sizes, the power of a test increases, however, as the effect size decreases, the power of a test decreases. In this simulation, 
 
