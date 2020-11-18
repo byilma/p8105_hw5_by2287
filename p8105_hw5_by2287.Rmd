@@ -45,7 +45,7 @@ homicide_df =
 
 The dataframe `homicide_df` contains information on homicides in 50 large U.S. cities. The dataset contains`r nrow(homicide_df)` rows and `r ncol(homicide_df)` columns, which contain information such as:`r homicide_df %>% select(reported_date, city, state, victim_race, victim_age, disposition) %>% names()`.
 
-
+#  comment on disposition
 
 ```{r, message=FALSE, warning = FALSE}
 aggregate_df = homicide_df %>% 
@@ -119,7 +119,7 @@ lda = tibble(
     data = map(data, bind_rows)
     ) %>% 
     select(-path) %>% 
-    separate(id, into = c("treatment", "id"), sep = "_") %>% 
+    separate(id, into = c("treatment_arm", "id"), sep = "_") %>% 
   unnest(data) %>% 
     relocate(id) %>% 
   pivot_longer(
@@ -127,6 +127,9 @@ lda = tibble(
     names_to = "week",
     names_prefix = "week_",
     values_to = "observation"
+  ) %>% 
+  mutate(
+    week = as.numeric(week)
   )
     
 
@@ -137,7 +140,26 @@ lda %>%
 ```
 
 
-The dataset `lda` is tidy data that contains data from a longitudinal study on `r nrow(lda)` participants, including the subject ID, arm, and observations over time
+The dataset `lda` is tidy data that contains data from a longitudinal study on `r nrow(lda)` participants, including the subject ID, arm, and observations over time. The tidying steps included first creating a tibble contains the `path` name of each file, which I then iterate over in the `mutate` step to read in those files. I then, create a dataframe that binds the rows of these read in data. I also create an `arm` and an `id` column off of the file names. Finally, I pivot the observations for each person by week into a long week to create a `week` and an `observation` variable; then I convert `week` into numeric to prepare it for the `spaghetti plot` shown below.
+
+
+
+Spaghetti plot
+```{r}
+lda %>% 
+  ggplot(aes(x = week, y = observation, group = interaction(treatment_arm, id), color = treatment_arm)) + 
+  geom_line() + 
+      labs(
+    title = "Response to treatment by arm",
+    x = "Time in Weeks",
+    y = "Observation"
+  ) + 
+  scale_color_discrete(name = "Treatment Arm",
+                         breaks = c("con", "exp"),
+                         labels = c("Control", "Experimental"))
+```
+
+We see that those who were on the treatment arm had, in general, a higher number of observations of the measured value, than those who were in the control arm. 
 
 
 ## Problem 3
@@ -217,14 +239,15 @@ ttest_results %>%
   ggplot(aes(y = mean_mu_hat, x = mu)) + 
   geom_line() + 
   geom_point() +
-    geom_line(data = ttest_results2, color = "red") +
+    geom_line(data = ttest_results2, color = "red", linetype = "dashed") +
     geom_point(data = ttest_results2, color = "red") + 
   labs(
     title = "Mean of Estimate Vs. True Mean",
     x = "True Population Mean",
     y = "Mean of Estimate",
-    caption = "Red Line shows those tests with Rejected Null Ho"
-  )
+    caption = "Dashed, Red Line shows those tests with Rejected Null Ho \n
+            Solid Black Line shows all tests (Rejected + Not Rejected)"
+  ) 
 ```
 
 
